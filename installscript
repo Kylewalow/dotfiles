@@ -3,6 +3,11 @@
 # Hide "last login" line when starting a new terminal session
 touch $HOME/.hushlogin
 
+echo 'Install homebrew'
+echo '----------------'
+sudo rm -rf /usr/local/Cellar /usr/local/.git && brew cleanup
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
 echo 'Install fonts'
 echo '-----------------'
 brew tap homebrew/cask-fonts
@@ -55,10 +60,6 @@ ln -s $HOME/.dotfiles/zshrc/remy.zsh-theme $HOME/.oh-my-zsh/custom/themes/remy.z
 cd ~/.dotfiles/shell
 chmod +x z.sh
 
-echo 'Install homebrew'
-echo '----------------'
-sudo rm -rf /usr/local/Cellar /usr/local/.git && brew cleanup
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
 echo 'Install node version manager (nvm)'
 echo '-----------'

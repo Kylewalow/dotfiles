@@ -411,10 +411,10 @@ function email-guess() {
 
     remote=`git remote -v | awk '/\(push\)$/ {print $2}'`
     echo -e "${GREEN}Guessing email based on git repo $remote${NOCOLOR}"
-    email=okaufmann91@gmail.com # default
+    email=kylewalow@gmail.com # default
 
     if [[ $remote == *github.com:teamnovu* ]]; then
-        email=kaufmann@novu.ch
+        email=kyle.werner@novu.ch
     fi
 
     echo -e "${GREEN}Configuring user.email as $email${NOCOLOR}"
