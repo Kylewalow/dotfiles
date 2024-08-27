@@ -5,6 +5,7 @@ echo '-----------'
 
 brew install php@7.4
 brew install php@8.0
+brew install php@8.1
 
 echo 'Install php-yaml'
 echo '-----------------'

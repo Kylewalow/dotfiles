@@ -6,13 +6,12 @@ touch $HOME/.hushlogin
 echo 'Install homebrew'
 echo '----------------'
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-sudo rm -rf /usr/local/Cellar /usr/local/.git && brew cleanup
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+
 
 echo 'Install fonts'
 echo '-----------------'
 brew tap homebrew/cask-fonts
-brew cask install font-fira-code
+brew install --cask font-fira-code
 
 # Install zsh
 echo 'Install oh-my-zsh'
@@ -116,16 +115,15 @@ brew install fswatch
 
 echo 'Install brew-cask'
 echo '-----------------'
-brew tap homebrew/cask-cask
-brew install brew-cask
+brew install brew-cask-completion
 
 echo 'Install Visual Studio Code'
 echo '-----------------'
-brew cask install visual-studio-code
+brew install --cask visual-studio-code
 
 echo 'Install some nice quicklook plugins'
 echo '-----------------------------------'
-brew cask install --force qlcolorcode qlstephen qlmarkdown quicklook-json qlprettypatch quicklook-csv betterzipql webp-quicklook suspicious-package
+brew install --cask --force qlcolorcode qlmarkdown quicklook-json qlprettypatch quicklook-csv suspicious-package
 
 echo 'Install mysql'
 echo '-------------'

@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 
+function continue_prompt {
+    local yn
+    # prepare a default message or take the first argument
+    local message=${1:-"Do you want to continue? (y/n) "}
+    while true; do
+        echo $message
+        read yn
+        case $yn in
+            [Yy]* ) return 0;;
+            [Nn]* ) return 1;;
+            * ) echo "Please answer y or n.";;
+        esac
+    done
+}
+
 function archive() {
     zip -r "$1".zip "$1" ;
 }
@@ -163,7 +178,7 @@ function phpv() {
 
     echo "install composer packages"
     composer global update
-    cgr update
+    #cgr update
 
     echo "installing valet"
     valet install
@@ -171,11 +186,9 @@ function phpv() {
 
 # alias php56="phpv php@5.6"
 # alias php70="phpv php@7.0"
-alias php71="phpv php@7.1"
-alias php72="phpv php@7.2"
-alias php73="phpv php@7.3"
 alias php74="phpv php@7.4"
 alias php8="phpv php@8.0"
+alias php81="phpv php@8.1"
 
 # Network scanner
 function bitCountForMask {
@@ -419,4 +432,198 @@ function email-guess() {
 
     echo -e "${GREEN}Configuring user.email as $email${NOCOLOR}"
     git config user.email $email
+}
+
+function kraken() {
+    echo "opening :octopus:..."
+    dir="$(cd "$(dirname "$1")" > /dev/null; pwd -P)/$(basename "$1")"
+    open gitkraken://repo/$dir}
+
+function checkAwsProfile() {
+    # check if the given parameter (a certain profile) is set in the file ~/.aws/credentials if not echo an example and exit with 1
+    local profile=$1
+    local file=~/.aws/credentials
+    local example=$(\cat << EOF
+[$profile]
+aws_access_key_id = <your access key>
+aws_secret_access_key = <your secret key>
+EOF
+)
+
+    if ! grep -q "\[$profile\]" $file; then
+        # echo the following lines in red and reset afterwards
+        tput setaf 1
+        echo "AWS Profile $profile not found in $file"
+        echo "Make sure you have a profile with the name $profile and the correct permissions in $file"
+        echo ""
+        echo "Example:"
+        echo "$example"
+        tput sgr0
+        return 1
+    fi
+
+    # make shure that in the file ~/.aws/config the region is us-east-1. Otherwise the ACL requests wont work
+    local file=~/.aws/config
+    local example=$(\cat << EOF
+[profile $profile]
+region = us-east-1
+EOF
+)
+
+    if ! grep -q "\[profile $profile\]" $file; then
+        # echo the following lines in red and reset afterwards
+        tput setaf 1
+        echo "AWS Profile $profile not found in $file"
+        echo "Make sure you have a profile with the name $profile and the correct permissions in $file"
+        echo ""
+        echo "Example:"
+        echo "$example"
+        tput sgr0
+        return 1
+    fi
+
+
+    return 0
+}
+
+function createS3UserWithPolicy() {
+    local username=$1
+    local bucket=$2
+    local profile=$3
+    local argsIam=(--profile $3 --endpoint-url=https://iam.wasabisys.com)
+
+    checkAwsProfile $profile || return 1
+
+
+    # use backspace to ensure alias of cat is not used!
+    local policy=$(\cat << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Sid": "AllowAllS3Actions",
+          "Effect": "Allow",
+          "Action": [
+              "s3:*"
+          ],
+          "Resource": [
+              "arn:aws:s3:::$bucket",
+              "arn:aws:s3:::$bucket/*"
+          ]
+      }
+  ]
+}
+EOF
+)
+
+    echo "Creating User $username"
+    aws iam create-user $argsIam \
+        --user-name $username
+
+    echo "Creating policy to allow access to bucket $username"
+    local policyArn=$(aws iam create-policy $argsIam \
+        --policy-name $username \
+        --policy-document ${policy} \
+        --output json | jq -r .Policy.Arn)
+
+    echo "Attaching policy $policyArn to user $username"
+    aws iam attach-user-policy $argsIam \
+        --user-name $username \
+        --policy-arn $policyArn
+
+    echo "Creating access key and secret for user $username and echo"
+    local accessKeyResult=$(aws iam create-access-key $argsIam \
+        --user-name $username \
+        --output json)
+    echo
+    echo -n "Access Key ID: "
+    ACCESS_KEY=$(echo $accessKeyResult | jq -r .AccessKey.AccessKeyId)
+    echo $ACCESS_KEY
+
+    echo -n "Access Secret: "
+    ACCESS_SECRET=$(echo $accessKeyResult | jq -r .AccessKey.SecretAccessKey)
+    echo $ACCESS_SECRET
+}
+
+function setupS3Bucket() {
+    local name=$1
+    local profile=$2
+    local defaultRegion="eu-central-2"
+    local region="${3:-$defaultRegion}"
+    local args=(--profile $profile --endpoint-url="https://s3.${region}.wasabisys.com")
+
+    checkAwsProfile $profile || return 1
+
+    echo
+    echo "Creating the following resources in region $region using profile $profile:"
+    echo "- bucket $name"
+    echo "- user $name"
+    echo "- policy $name"
+    echo
+
+    if  ! continue_prompt; then
+        return
+    fi
+
+
+    echo "Creating bucket $name in region $region"
+    aws s3api create-bucket $args \
+        --bucket $name
+
+    createS3UserWithPolicy $name $name $profile
+
+    echo
+    echo "Endpoint for bucket $name is https://s3.${region}.wasabisys.com"
+    echo "Open in Wasabi Console: https://console.wasabisys.com/#/file_manager/${name}?region=${region}"
+    echo
+    echo "Bucket $name created"
+    echo
+    echo "To use it in your Laravel Project, update the following environment variables in your .env file:"
+    echo
+    echo "S3_ASSETS_ACCESS_KEY_ID=$ACCESS_KEY"
+    echo "S3_ASSETS_SECRET_ACCESS_KEY=$ACCESS_SECRET"
+    echo "S3_ASSETS_DEFAULT_REGION=$region"
+    echo "S3_ASSETS_BUCKET=$name"
+    echo "S3_ASSETS_ENDPOINT=https://s3.${region}.wasabisys.com"
+    unset $ACCESS_KEY
+    unset $ACCESS_SECRET
+}
+
+function pdr() {
+    YELLOW='\033[0;33m'
+    GREEN='\033[0;32m'
+    NC='\033[0m'
+
+    # Remove all files in the generated folder
+    echo -e "${YELLOW}Removing all files in the queries/generated/ folder...${NC}"
+    rm -rf queries/generated/*
+
+    # Start pnpm run dev and redirect output to a file
+    echo -e "\n${GREEN}Run pnpm dev${NC}"
+    pnpm run dev > output.log 2>&1 &
+
+    # Get the process ID of the last command run in the background
+    PID=$!
+
+    # Wait until the specific output appears in the log file
+    echo "Waiting for the generation to complete..."
+    tail -f output.log | while read LOGLINE
+    do
+        if [[ "${LOGLINE}" == *"✔ [GraphQL Client]: Generation completed"* ]]; then
+        echo -e "\n${GREEN}Generation completed${NC}"
+        pkill -P $$ tail   # Stop monitoring the log file
+        break              # Exit the loop
+        fi
+    done
+
+    # Kill the pnpm run dev process after the output is detected
+    echo "Killing the pnpm run dev process..."
+    kill $PID
+
+    # Remove the output log file
+    rm output.log
+
+    # Restart pnpm run dev
+    echo -e "\n${GREEN}Run pnpm dev again${NC}"
+    pnpm run dev
 }

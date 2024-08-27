@@ -35,11 +35,19 @@ alias yii="php yii $@"
 # ---------------
 alias fresh='php artisan migrate:fresh --seed'
 alias a="artisan" # artisan is provided by zsh plugin
+alias art="php artisan"
+alias acc="php artisan cache:clear"
+alias aoc="php artisan optimize:clear"
 alias v="vapor"
 alias deploy='envoy run deploy'
 alias deploy-code='envoy run deploy-code'
 alias ngrok="$HOME/.composer/global/laravel/valet/vendor/laravel/valet/bin/ngrok"
 alias please="php please $@"
+alias sail="./vendor/bin/sail"
+
+# Statamic
+# ---------------
+alias st="php please"
 
 # SSH
 # ---------------
@@ -72,6 +80,7 @@ alias git="hub"
 alias wip="commit 'wip'"
 alias cleanbranches="git branch --merged | egrep -v \"(^\*|master|develop|dev)\" | xargs git branch -d"
 alias dracaris='git reset --hard;git clean -df'
+alias gpcms='git pull && php artisan optimize:clear'
 
 # Editors
 # ---------------
@@ -109,3 +118,21 @@ alias ocr='screencapture -i ~/tmp/screenshot.png && tesseract ~/tmp/screenshot.p
 
 # Scape webpage
 alias scrape="scrapeUrl"
+
+# npm
+alias ni="npm install"
+alias nd="npm dev"
+alias nb="npm build"
+
+# Yarn
+alias yi="yarn install"
+alias yd="yarn dev"
+alias yb="yarn build"
+
+# Pnpm
+alias pi="pnpm install"
+alias pd="pnpm dev"
+alias pb="pnpm build"
+
+# VSCode
+alias c.="code ."

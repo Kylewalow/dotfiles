@@ -24,3 +24,4 @@
     au = add -u
     ap = add -p
     cara = “!git commit --amend --reset-author”
+    deploy="commit -m 'deploy' --allow-empty"
