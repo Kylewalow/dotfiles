@@ -610,9 +610,15 @@ function pdr() {
     tail -f output.log | while read LOGLINE
     do
         if [[ "${LOGLINE}" == *"✔ [GraphQL Client]: Generation completed"* ]]; then
-        echo -e "\n${GREEN}Generation completed${NC}"
-        pkill -P $$ tail   # Stop monitoring the log file
-        break              # Exit the loop
+            echo -e "\n${GREEN}Generation completed${NC}"
+            pkill -P $$ tail   # Stop monitoring the log file
+            break              # Exit the loop
+        elif [[ "${LOGLINE}" == *"ERROR"* ]]; then
+            echo -e "\n${RED}An error occurred: ${LOGLINE}${NC}"
+            pkill -P $$ tail   # Stop monitoring the log file
+            kill $PID          # Kill the pnpm run dev process
+            rm output.log      # Remove the output log file
+            exit 1             # Exit the script with a non-zero status
         fi
     done
 
@@ -626,4 +632,104 @@ function pdr() {
     # Restart pnpm run dev
     echo -e "\n${GREEN}Run pnpm dev again${NC}"
     pnpm run dev
+}
+
+#v1.0.1
+function set_vscode_colors {
+  # Check if jq is installed
+  if ! command -v jq &> /dev/null; then
+    echo "Error: 'jq' to write to JSON files is not installed. Please install 'jq' to use this function. From macOS 'brew install jq'"
+    return 1
+  fi
+
+  # Check if `--user` is passed
+  local save_for_user=false
+  while [[ "$1" != "" ]]; do
+    case $1 in
+      --user) save_for_user=true ;;
+      *) echo "Unknown parameter: $1" && return 1 ;;
+    esac
+    shift
+  done
+
+  # Define paths for settings
+  local workspace_settings_path=".vscode/settings.json"
+  local user_settings_path="${HOME}/.config/Code/User/settings.json"
+  local settings_path="$workspace_settings_path"
+
+  # Use user settings if --user is passed
+  if [[ $save_for_user == true ]]; then
+    settings_path="$user_settings_path"
+  else
+    # Ensure .vscode directory exists for workspace settings
+    if [[ ! -d ".vscode" ]]; then
+        mkdir -p ".vscode"
+    fi
+
+    # Ensure the file exists and has valid JSON content
+    if [ ! -s "$settings_path" ]; then
+      echo '{}' > "$settings_path"
+    fi
+
+    settings_path="$workspace_settings_path"
+  fi
+
+  # Get current project directory name
+  local project_name=$(basename "$PWD")
+
+  # Default color settings
+  local background_color=""
+  local active_background_color=""
+
+  # Customize colors based on project type
+  if [[ -f "artisan" ]]; then
+    # Detect Laravel project by the presence of artisan
+    background_color="#7418a2"
+    active_background_color="#9809e0"
+  elif [[ -n $(ls nuxt.config.* 2>/dev/null) ]]; then
+    # Detect Nuxt.js project by the presence of nuxt.config.js
+    background_color="#1a8d5a"
+    active_background_color="#2fb170"
+  elif [[ -d "public/wire" ]]; then
+    # Detect ProcessWire project by the presence of public/wire
+    background_color="#d25b23"
+    active_background_color="#d14403"
+  fi
+
+  # Return if no color is set
+  if [[ -z "$background_color" ]]; then
+    echo "Not a artisan or -web project. No color customization found for project: $project_name"
+    return 1
+  fi
+
+  # Update settings.json
+  if [[ -f "$settings_path" ]]; then
+
+    # Ensure the file exists and has valid JSON content
+    if [ ! -s "$settings_path" ]; then
+      echo '{}' > "$settings_path"
+    fi
+
+    # Update the JSON using jq
+    local settings
+    settings=$(jq --arg background "$background_color" \
+      --arg activeBackground "$active_background_color" \
+      '.["workbench.colorCustomizations"] = {
+        "activityBar.background": $background,
+        "activityBar.activeBackground": $activeBackground,
+        "titleBar.inactiveBackground": $background,
+        "titleBar.activeBackground": $activeBackground
+      }' "$settings_path")
+
+      if [ $? -ne 0 ]; then
+        echo "Error: Failed to update JSON."
+        return 1
+      fi
+
+    # Write the updated settings back to the file
+    echo "$settings" > "$settings_path"
+    echo "VS Code settings updated in $(basename "$settings_path") for project: $project_name"
+  else
+    echo "Unable to create or update VS Code settings at $settings_path."
+  fi
 }

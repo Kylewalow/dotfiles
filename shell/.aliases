@@ -136,3 +136,9 @@ alias pb="pnpm build"
 
 # VSCode
 alias c.="code ."
+
+# Cursor
+alias cur="cursor $@"
+
+# CLI
+alias reloadcli="source $HOME/.zshrc"

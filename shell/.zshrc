@@ -184,21 +184,27 @@ export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 # place this after nvm initialization!
 autoload -U add-zsh-hook
 load-nvmrc() {
-  local nvmrc_path="$(nvm_find_nvmrc)"
-
-  if [ -n "$nvmrc_path" ]; then
-    local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
-
-    if [ "$nvmrc_node_version" = "N/A" ]; then
-      nvm install
-    elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
-      nvm use
+    local nvmrc_path="$(nvm_find_nvmrc)"
+    
+    if [ -n "$nvmrc_path" ]; then
+        local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+        
+        if [ "$nvmrc_node_version" = "N/A" ]; then
+            nvm install
+            elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
+            nvm use
+        fi
+        elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
+        echo "Reverting to nvm default version"
+        nvm use default
     fi
-  elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
-    echo "Reverting to nvm default version"
-    nvm use default
-  fi
 }
 add-zsh-hook chpwd load-nvmrc
 load-nvmrc
+PATH="$(pyenv root)/shims:$PATH"
+
 PATH=~/.console-ninja/.bin:$PATH
+
+export NODE_EXTRA_CA_CERTS="/Users/kylewerner/.config/valet/CA/LaravelValetCASelfSigned.pem"
+# Created by `pipx` on 2025-10-15 08:33:36
+export PATH="$PATH:/Users/kylewerner/.local/bin"
